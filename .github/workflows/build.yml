@@ -1,0 +1,85 @@
+name: Build executables
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:   # allows manual runs from the Actions tab
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: photo-organizer-linux
+            artifact_path: dist/photo-organizer
+          - os: windows-latest
+            artifact_name: photo-organizer-windows
+            artifact_path: dist/PhotoOrganizer.exe
+          - os: macos-latest
+            artifact_name: photo-organizer-macos
+            artifact_path: dist/PhotoOrganizer.app
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Linux system libs (for Qt)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-sync1 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller PyQt6 Pillow
+
+      - name: Build
+        run: python build.py
+
+      - name: Zip .app bundle (macOS)
+        if: runner.os == 'macOS'
+        run: cd dist && zip -r PhotoOrganizer-macos.zip PhotoOrganizer.app
+
+      - name: Upload artifact (Linux / Windows)
+        if: runner.os != 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          if-no-files-found: error
+
+      - name: Upload artifact (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/PhotoOrganizer-macos.zip
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: artifacts }
+
+      - name: Create GitHub release with binaries
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/photo-organizer-linux/photo-organizer
+            artifacts/photo-organizer-windows/PhotoOrganizer.exe
+            artifacts/photo-organizer-macos/PhotoOrganizer-macos.zip
+          generate_release_notes: true
