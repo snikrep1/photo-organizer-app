@@ -45,9 +45,14 @@ jobs:
       - name: Build
         run: python build.py
 
-      - name: Zip .app bundle (macOS)
+      - name: Archive .app bundle (macOS)
         if: runner.os == 'macOS'
-        run: cd dist && zip -r PhotoOrganizer-macos.zip PhotoOrganizer.app
+        # Use ditto, not zip: it preserves symlinks, extended attributes and
+        # the code signature inside the .app. Plain zip can corrupt the bundle
+        # and cause launch-time crashes on Apple Silicon.
+        run: >
+          ditto -c -k --sequesterRsrc --keepParent
+          dist/PhotoOrganizer.app dist/PhotoOrganizer-macos.zip
 
       - name: Upload artifact (Linux / Windows)
         if: runner.os != 'macOS'

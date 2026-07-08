@@ -55,7 +55,19 @@ def main():
 
     out = HERE / "dist"
     if sys.platform == "darwin":
-        print(f"\n[OK] macOS app bundle built: {out / 'PhotoOrganizer.app'}")
+        app_bundle = out / "PhotoOrganizer.app"
+        # Re-sign the bundle after assembly. PyInstaller only relocates Qt's
+        # own data files into Contents/Resources for code-signing compliance;
+        # any extra bundled data (our resources/icons/) can leave the .app's
+        # ad-hoc signature invalid. On Apple Silicon that makes the app crash
+        # at launch inside CoreFoundation (__CFCheckCFInfoPACSignature) before
+        # Python runs. A fresh deep ad-hoc re-sign re-seals everything.
+        print("Re-signing app bundle (ad-hoc)…")
+        ensure(["codesign", "--force", "--deep", "--sign", "-",
+                "--timestamp=none", str(app_bundle)])
+        ensure(["codesign", "--verify", "--deep", "--strict",
+                "--verbose=2", str(app_bundle)])
+        print(f"\n[OK] macOS app bundle built: {app_bundle}")
         print(f"     Drag into /Applications to install.")
     elif sys.platform == "win32":
         print(f"\n[OK] Windows executable built: {out / 'PhotoOrganizer.exe'}")
