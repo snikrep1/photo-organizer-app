@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Photo Organizer
+GenericName=Photo Organizer
+Comment=Organize photos by date into monthly folders
+Exec=photo-organizer
+Icon=photo-organizer
+Terminal=false
+Categories=Graphics;Photography;Utility;
+Keywords=photos;images;organize;sort;date;exif;
+StartupNotify=true
+StartupWMClass=photo-organizer

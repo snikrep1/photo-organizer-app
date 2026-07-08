@@ -45,3 +45,6 @@ copilot-instructions.md
 .aider.input.history
 .aider.tags.cache.v3/
 .aider.llm.history
+
+# macOS
+.DS_Store

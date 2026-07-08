@@ -1,18 +1,22 @@
 # PyInstaller spec for Photo Organizer.
 # Build with:  pyinstaller photo_organizer.spec
 # Produces a single-file executable in dist/ for the current platform.
+# App icons live in resources/icons/ (app.ico, app.icns, png/).
 
 import sys
 from pathlib import Path
 
 block_cipher = None
 HERE = Path(SPECPATH)
+ICON_DIR = HERE / 'resources' / 'icons'
+WIN_ICON = str(ICON_DIR / 'app.ico')
+MAC_ICON = str(ICON_DIR / 'app.icns')
 
 a = Analysis(
     ['photo_organizer.py'],
     pathex=[str(HERE)],
     binaries=[],
-    datas=[],
+    datas=[(str(ICON_DIR), 'resources/icons')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -55,7 +59,7 @@ if sys.platform == 'darwin':
     app = BUNDLE(
         coll,
         name='PhotoOrganizer.app',
-        icon=None,
+        icon=MAC_ICON,
         bundle_identifier='com.guy.photoorganizer',
         info_plist={
             'CFBundleShortVersionString': '1.0.0',
@@ -73,6 +77,7 @@ else:
         a.datas,
         [],
         name='PhotoOrganizer' if sys.platform == 'win32' else 'photo-organizer',
+        icon=WIN_ICON if sys.platform == 'win32' else None,
         debug=False,
         bootloader_ignore_signals=False,
         strip=False,

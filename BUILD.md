@@ -40,3 +40,29 @@ The "Mount NAS" button only appears on Linux, because it shells out to
 Windows and macOS, mount the SMB share via the OS (Finder → Go → Connect
 to Server, or `\\server\share` in Explorer), then use **Browse…** to point
 the app at the mounted location.
+
+## Application icons
+
+Icon assets live in `resources/icons/`:
+
+| File | Used for |
+|------|----------|
+| `app.ico` | Windows `.exe` icon (embedded by PyInstaller) |
+| `app.icns` | macOS `.app` bundle icon |
+| `app.png` | 512×512 master; runtime fallback icon |
+| `png/icon-<size>.png` | multi-res runtime `QIcon` + Linux hicolor install |
+
+How each OS gets its icon:
+
+- **Windows** — `photo_organizer.spec` passes `icon=app.ico` to `EXE`, so the
+  icon is embedded in `PhotoOrganizer.exe`. At runtime the app also sets an
+  explicit AppUserModelID so the taskbar shows its own icon.
+- **macOS** — the spec passes `icon=app.icns` to `BUNDLE`, giving
+  `PhotoOrganizer.app` its Finder/Dock icon.
+- **Linux** — executables can't embed an icon, so the app sets the window/dock
+  icon at runtime via `app.setWindowIcon(...)`. For menu/launcher integration,
+  run `packaging/linux/install-icons.sh` to install the hicolor icons and the
+  `.desktop` entry.
+
+The PNGs are bundled into every build (`datas` in the spec), so the runtime
+window icon works on all three platforms.

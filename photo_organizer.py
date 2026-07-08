@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (
     QCheckBox, QFrame, QMenu, QInputDialog,
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QColor, QFont, QBrush
+from PyQt6.QtGui import QColor, QFont, QBrush, QIcon
 
 try:
     from PIL import Image
@@ -1275,9 +1275,52 @@ QDialogButtonBox QPushButton { min-width: 80px; }
 """
 
 
+def resource_path(rel: str) -> Path:
+    """Resolve a bundled resource path.
+
+    Works both when running from source and when frozen by PyInstaller
+    (which unpacks bundled data under sys._MEIPASS).
+    """
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+    return base / rel
+
+
+def load_app_icon() -> QIcon:
+    """Build a multi-resolution app icon from the bundled PNGs."""
+    icon = QIcon()
+    png_dir = resource_path("resources/icons/png")
+    added = False
+    if png_dir.is_dir():
+        for png in sorted(png_dir.glob("icon-*.png")):
+            icon.addFile(str(png))
+            added = True
+    if not added:
+        fallback = resource_path("resources/icons/app.png")
+        if fallback.exists():
+            icon.addFile(str(fallback))
+    return icon
+
+
 def main():
+    # On Windows, give the app its own taskbar identity so the icon
+    # groups correctly and doesn't inherit python.exe's default.
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+                "com.guy.photoorganizer"
+            )
+        except Exception:
+            pass
+
     app = QApplication(sys.argv)
     app.setApplicationName("Photo Organizer")
+    # On Linux, match the window to the installed .desktop entry
+    # (StartupWMClass=photo-organizer) so GNOME/Wayland shows its icon
+    # in the dock and app menu instead of a generic placeholder.
+    if sys.platform.startswith("linux"):
+        app.setDesktopFileName("photo-organizer")
+    app.setWindowIcon(load_app_icon())
     app.setStyle("Fusion")
     app.setStyleSheet(MOCHA_STYLESHEET)
     win = MainWindow()
